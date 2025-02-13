@@ -14,24 +14,41 @@ export const getSchedule = async (req, res) => {
   }
 };
 
-// Update or Create schedule for a class
+// Create a new schedule
+export const createSchedule = async (req, res) => {
+  const { className, schedule } = req.body;
+  try {
+    let existingSchedule = await Schedule.findOne({ className });
+    
+    if (existingSchedule) {
+      return res.status(400).json({ message: "Schedule already exists. Use PUT to update." });
+    }
+
+    const newSchedule = new Schedule({ className, schedule });
+    await newSchedule.save();
+
+    res.status(201).json({ message: "Schedule created successfully", newSchedule });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update an existing schedule
 export const updateSchedule = async (req, res) => {
-  const { className } = req.params; // ✅ Get className from URL params
+  const { className } = req.params;
   const { schedule } = req.body;
 
   try {
     let existingSchedule = await Schedule.findOne({ className });
 
-    if (existingSchedule) {
-      existingSchedule.schedule = schedule;
-      await existingSchedule.save();
-      return res.status(200).json({ message: "Schedule updated successfully" });
-    } else {
-      // ✅ Fix: Create a new schedule if it doesn’t exist
-      const newSchedule = new Schedule({ className, schedule });
-      await newSchedule.save();
-      return res.status(201).json({ message: "New schedule created successfully" });
+    if (!existingSchedule) {
+      return res.status(404).json({ message: "Schedule not found. Use POST to create a new schedule." });
     }
+
+    existingSchedule.schedule = schedule;
+    await existingSchedule.save();
+
+    res.status(200).json({ message: "Schedule updated successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
